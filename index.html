@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英文聽讀 APP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      text-align: center;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .word {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #333;
+      margin: 15px 0;
+    }
+    .buttons {
+      margin: 20px 0;
+    }
+    button {
+      font-size: 1rem;
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-speak { background-color: #2196F3; color: white; }
+    .btn-record { background-color: #4CAF50; color: white; }
+    .btn-record.recording { background-color: #f44336; }
+    .btn-next { background-color: #607D8B; color: white; }
+    .status {
+      min-height: 24px;
+      margin: 15px 0;
+      font-weight: bold;
+    }
+    .correct { color: #4CAF50; }
+    .wrong { color: #f44336; }
+    .score-board {
+      margin-top: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>英文單字聽讀練習</h2>
+    
+    <!-- 顯示當前單字 -->
+    <div id="target-word" class="word">apple</div>
+
+    <!-- 功能按鈕 -->
+    <div class="buttons">
+      <button class="btn-speak" id="btn-speak">🔊 播放發音</button>
+      <button class="btn-record" id="btn-record">🎤 按下跟讀</button>
+      <button class="btn-next" id="btn-next">下一題 ➔</button>
+    </div>
+
+    <!-- 辨識狀態與結果提示 -->
+    <div id="status" class="status"></div>
+    <div id="recognized-text" style="color: #555;"></div>
+
+    <!-- 正確率統計 -->
+    <div class="score-board">
+      正確率：<span id="accuracy">0%</span>（答對 <span id="correct-count">0</span> / 總計 <span id="total-count">0</span>）
+    </div>
+  </div>
+
+  <script>
+    // 1. 單字清單
+    const words = ["apple", "banana", "computer", "developer", "wonderful", "practice"];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let totalCount = 0;
+
+    // DOM 元素
+    const wordDisplay = document.getElementById("target-word");
+    const statusDisplay = document.getElementById("status");
+    const recognizedText = document.getElementById("recognized-text");
+    const accuracyDisplay = document.getElementById("accuracy");
+    const correctCountDisplay = document.getElementById("correct-count");
+    const totalCountDisplay = document.getElementById("total-count");
+    const recordBtn = document.getElementById("btn-record");
+
+    // 更新題目
+    function updateWord() {
+      wordDisplay.innerText = words[currentIndex];
+      statusDisplay.innerText = "";
+      recognizedText.innerText = "";
+    }
+
+    // 2. 語音合成（播放正確發音）
+    document.getElementById("btn-speak").addEventListener("click", () => {
+      const text = words[currentIndex];
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      window.speechSynthesis.speak(utterance);
+    });
+
+    // 3. 語音辨識（跟讀與比對）
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("您的瀏覽器不支援 Web Speech Recognition，請使用 Google Chrome 測試。");
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+
+      recordBtn.addEventListener("click", () => {
+        recognition.start();
+        recordBtn.innerText = "錄音中...請發音";
+        recordBtn.classList.add("recording");
+      });
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase().trim();
+        const currentTarget = words[currentIndex].toLowerCase().trim();
+        
+        recognizedText.innerText = `辨識結果：${transcript}`;
+        totalCount++;
+
+        // 比對結果
+        if (transcript === currentTarget) {
+          statusDisplay.innerText = "念對了！🎉";
+          statusDisplay.className = "status correct";
+          correctCount++;
+        } else {
+          statusDisplay.innerText = "念錯了，再試一次！❌";
+          statusDisplay.className = "status wrong";
+        }
+
+        // 更新統計數據
+        correctCountDisplay.innerText = correctCount;
+        totalCountDisplay.innerText = totalCount;
+        const rate = Math.round((correctCount / totalCount) * 100);
+        accuracyDisplay.innerText = `${rate}%`;
+      };
+
+      recognition.onend = () => {
+        recordBtn.innerText = "🎤 按下跟讀";
+        recordBtn.classList.remove("recording");
+      };
+
+      recognition.onerror = (event) => {
+        statusDisplay.innerText = "收音失敗或發生錯誤：" + event.error;
+        recordBtn.innerText = "🎤 按下跟讀";
+        recordBtn.classList.remove("recording");
+      };
+    }
+
+    // 下一題
+    document.getElementById("btn-next").addEventListener("click", () => {
+      currentIndex = (currentIndex + 1) % words.length;
+      updateWord();
+    });
+
+    // 初始化載入
+    updateWord();
+  </script>
+</body>
+</html>
